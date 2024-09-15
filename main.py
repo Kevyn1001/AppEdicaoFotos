@@ -15,15 +15,15 @@ def display_image(img, original=False):
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_pil = Image.fromarray(img_rgb)
     
-    # Obtém o tamanho da imagem orifinal
+    # Obtém o tamanho da imagem original
     img_width, img_height = img_pil.size
     
-    # Redimensional a imagem para caber no canvas se for muito grande
+    # Redimensiona a imagem para caber no canvas se for muito grande
     max_size = 500
     img_pil.thumbnail((max_size, max_size))  # Maintain aspect ratio
     img_tk = ImageTk.PhotoImage(img_pil)
 
-    # Calcula a posição para centralizar a imagem dentro do canvas se for menor
+    # Calcula a posição para centralizar a imagem dentro do canvas
     canvas_width, canvas_height = max_size, max_size
     x_offset = (canvas_width - img_pil.width) // 2
     y_offset = (canvas_height - img_pil.height) // 2
@@ -33,7 +33,7 @@ def display_image(img, original=False):
         original_image_canvas.image = img_tk  # Mantém a referência viva - garbage collection
         original_image_canvas.create_image(x_offset, y_offset, anchor=tk.NW, image=img_tk)
     else:
-        edited_image_canvas.delete("all")  # Limapa a canvas
+        edited_image_canvas.delete("all")  # Limpa a canvas
         edited_image_canvas.image = img_tk
         edited_image_canvas.create_image(x_offset, y_offset, anchor=tk.NW, image=img_tk)
 
@@ -56,11 +56,11 @@ def refresh_canvas():
 root = tk.Tk()
 root.title("Image Processing App")
 
-# Define o tamanho da janela da aplicação 1200x800
-root.geometry("1085x550")
+# Define o tamanho da janela da aplicação
+root.geometry("1200x600")
 
 # Define a cor de fundo da janela
-root.config(bg="#2e2e2e")
+root.config(bg="#022a3b")
 
 img_cv = None
 
@@ -81,12 +81,33 @@ menu_bar.add_cascade(label="Filters", menu=filters_menu)
 filters_menu.add_command(label="Low Pass Filter", command=lambda: apply_filter("low_pass"))
 filters_menu.add_command(label="High Pass Filter", command=lambda: apply_filter("high_pass"))
 
+# Configura grid para centralizar o frame das imagens
+root.grid_columnconfigure(0, weight=1)
+root.grid_columnconfigure(2, weight=1)
+root.grid_rowconfigure(0, weight=1)
+root.grid_rowconfigure(2, weight=1)
+
+# Cria um frame para as imagens
+image_frame = tk.Frame(root, bg="#2e2e2e")
+image_frame.grid(row=1, column=1, padx=20, pady=20)
+
 # Cria a canvas para a imagem original com borda (sem background)
-original_image_canvas = tk.Canvas(root, width=500, height=500, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
-original_image_canvas.grid(row=0, column=0, padx=20, pady=20)
+original_image_canvas = tk.Canvas(image_frame, width=500, height=500, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
+original_image_canvas.grid(row=0, column=0, padx=10, pady=10)
 
 # Cria a canvas para a imagem editada com borda (sem background)
-edited_image_canvas = tk.Canvas(root, width=500, height=500, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
-edited_image_canvas.grid(row=0, column=1, padx=20, pady=20)
+edited_image_canvas = tk.Canvas(image_frame, width=500, height=500, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
+edited_image_canvas.grid(row=0, column=1, padx=10, pady=10)
+
+# Cria um painel de controle para os botões logo abaixo das imagens
+control_frame = tk.Frame(root, bg="#022a3b")
+control_frame.grid(row=2, column=1)  # Mantém o painel logo abaixo das imagens
+
+# Adiciona botões para aplicar os filtros
+low_pass_button = tk.Button(control_frame, text="Low Pass Filter", command=lambda: apply_filter("low_pass"))
+low_pass_button.grid(row=0, column=0, padx=10)
+
+high_pass_button = tk.Button(control_frame, text="High Pass Filter", command=lambda: apply_filter("high_pass"))
+high_pass_button.grid(row=0, column=1, padx=10)
 
 root.mainloop()
