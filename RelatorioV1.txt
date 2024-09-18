@@ -1,0 +1,46 @@
+Vamos utilizar estes:
+
+Os filtros de imagem podem ser categorizados como **filtros passa-baixa** ou **filtros passa-alta**, dependendo de como eles processam as frequências da imagem.
+
+### Filtros Passa-Baixa:
+Filtros passa-baixa são utilizados para suavizar uma imagem, removendo detalhes finos e ruídos. Esses filtros deixam passar as frequências mais baixas e atenuam as mais altas. Alguns exemplos são:
+
+1. **Filtro Gaussiano**:
+   - **Função**: Suaviza a imagem borrando-a de forma suave.
+   - **Como Funciona**: Aplica um filtro Gaussiano, que é uma função de média ponderada onde os pesos decrescem à medida que se afastam do ponto central.
+
+   ```python
+   import cv2
+   img = cv2.imread('imagem.jpg')
+   blurred_img = cv2.GaussianBlur(img, (15, 15), 0)  # (15, 15) define o tamanho do kernel
+   ```
+
+2. **Filtro de Média (Blur)**:
+   - **Função**: Suaviza a imagem através da média simples de todos os pixels ao redor de um determinado pixel.
+   - **Como Funciona**: O filtro substitui o valor de cada pixel pela média dos pixels ao seu redor, resultando em uma imagem mais suave.
+
+   ```python
+   blurred_img = cv2.blur(img, (5, 5))  # (5, 5) é o tamanho do kernel
+   ```
+
+### Filtros Passa-Alta:
+Filtros passa-alta são usados para realçar os detalhes de uma imagem, como bordas e mudanças bruscas de intensidade. Esses filtros deixam passar as frequências mais altas e atenuam as mais baixas. Exemplos comuns incluem:
+
+1. **Filtro Laplaciano**:
+   - **Função**: Detecta bordas realçando as áreas de transição abrupta de intensidade.
+   - **Como Funciona**: Aplica o operador Laplaciano, que calcula a segunda derivada da imagem, realçando mudanças bruscas de cor.
+
+   ```python
+   laplacian_img = cv2.Laplacian(img, cv2.CV_64F)
+   ```
+
+2. **Filtro Sobel**:
+   - **Função**: Realça bordas de acordo com a direção, seja horizontal, vertical ou diagonal.
+   - **Como Funciona**: Aplica derivadas parciais da imagem para detectar as bordas em diferentes direções.
+
+   ```python
+   sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=5)  # Borda horizontal
+   sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=5)  # Borda vertical
+   ```
+
+Os filtros passa-baixa ajudam a suavizar a imagem, enquanto os filtros passa-alta são úteis para realçar detalhes e bordas.
