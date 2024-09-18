@@ -44,3 +44,8 @@ Filtros passa-alta são usados para realçar os detalhes de uma imagem, como bor
    ```
 
 Os filtros passa-baixa ajudam a suavizar a imagem, enquanto os filtros passa-alta são úteis para realçar detalhes e bordas.
+
+Fazendo o filtro GaussianBlur na mão:
+A ideia é criar um kernel gaussiano, e aplicar esse kernel a cada pixel da imagem, realizando uma convolução.
+Primeiro, vou adicionar uma função que calcula o kernel Gaussiano, e outra função que aplica essa convolução para realizar o efeito de desfoque Gaussiano.
+

@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import filedialog
 import cv2
 from PIL import Image, ImageTk
+import numpy as np
+import math
 
 def load_image():
     global img_cv
@@ -37,12 +39,49 @@ def display_image(img, original=False):
         edited_image_canvas.image = img_tk
         edited_image_canvas.create_image(x_offset, y_offset, anchor=tk.NW, image=img_tk)
 
+def create_gaussian_kernel(size, sigma):
+    """ Cria um kernel Gaussiano manualmente """
+    kernel = np.zeros((size, size))
+    center = size // 2
+    sum_val = 0
+    
+    for i in range(size):
+        for j in range(size):
+            x = i - center
+            y = j - center
+            kernel[i, j] = math.exp(-(x**2 + y**2) / (2 * sigma**2))
+            sum_val += kernel[i, j]
+    
+    # Normaliza o kernel
+    kernel /= sum_val
+    return kernel
+
+def apply_convolution(image, kernel):
+    """ Aplica a convolução usando o kernel fornecido à imagem """
+    kernel_size = kernel.shape[0]
+    pad_size = kernel_size // 2
+    padded_img = np.pad(image, ((pad_size, pad_size), (pad_size, pad_size), (0, 0)), mode='constant')
+    
+    output_img = np.zeros_like(image)
+    
+    for i in range(image.shape[0]):
+        for j in range(image.shape[1]):
+            for k in range(3):  # Para cada canal (R, G, B)
+                output_img[i, j, k] = np.sum(padded_img[i:i+kernel_size, j:j+kernel_size, k] * kernel)
+    
+    return output_img
+
 def apply_filter(filter_type):
     if img_cv is None:
         return
 
-    if filter_type == "gaussian_blur":
-        filtered_img = cv2.GaussianBlur(img_cv, (15, 15), 0)
+    if filter_type == "gaussian_blur_manual":
+        # Definindo os parâmetros para o filtro Gaussiano manual
+        kernel_size = 15
+        sigma = 2.0
+        gaussian_kernel = create_gaussian_kernel(kernel_size, sigma)
+        filtered_img = apply_convolution(img_cv, gaussian_kernel)
+
     elif filter_type == "average_blur":
         filtered_img = cv2.blur(img_cv, (5, 5))
     elif filter_type == "laplacian":
@@ -89,7 +128,7 @@ file_menu.add_command(label="Exit", command=root.quit)
 # Filters menu
 filters_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Filters", menu=filters_menu)
-filters_menu.add_command(label="Gaussian Blur", command=lambda: apply_filter("gaussian_blur"))
+filters_menu.add_command(label="Gaussian Blur (Manual)", command=lambda: apply_filter("gaussian_blur_manual"))
 filters_menu.add_command(label="Average Blur", command=lambda: apply_filter("average_blur"))
 filters_menu.add_command(label="Laplacian", command=lambda: apply_filter("laplacian"))
 filters_menu.add_command(label="Sobel", command=lambda: apply_filter("sobel"))
@@ -117,7 +156,7 @@ control_frame = tk.Frame(root, bg="#022a3b")
 control_frame.grid(row=2, column=1)  # Mantém o painel logo abaixo das imagens
 
 # Adiciona botões para aplicar os filtros
-gaussian_blur_button = tk.Button(control_frame, text="Gaussian Blur", command=lambda: apply_filter("gaussian_blur"))
+gaussian_blur_button = tk.Button(control_frame, text="Gaussian Blur (Manual)", command=lambda: apply_filter("gaussian_blur_manual"))
 gaussian_blur_button.grid(row=0, column=0, padx=10)
 
 average_blur_button = tk.Button(control_frame, text="Average Blur", command=lambda: apply_filter("average_blur"))
