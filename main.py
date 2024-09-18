@@ -20,7 +20,7 @@ def display_image(img, original=False):
     
     # Redimensiona a imagem para caber no canvas se for muito grande
     max_size = 500
-    img_pil.thumbnail((max_size, max_size))  # Maintain aspect ratio
+    img_pil.thumbnail((max_size, max_size))  # Mantém a proporção
     img_tk = ImageTk.PhotoImage(img_pil)
 
     # Calcula a posição para centralizar a imagem dentro do canvas
@@ -40,13 +40,24 @@ def display_image(img, original=False):
 def apply_filter(filter_type):
     if img_cv is None:
         return
-    if filter_type == "low_pass":
+
+    if filter_type == "gaussian_blur":
         filtered_img = cv2.GaussianBlur(img_cv, (15, 15), 0)
-    elif filter_type == "high_pass":
+    elif filter_type == "average_blur":
+        filtered_img = cv2.blur(img_cv, (5, 5))
+    elif filter_type == "laplacian":
         gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
         filtered_img = cv2.Laplacian(gray, cv2.CV_64F)
         filtered_img = cv2.convertScaleAbs(filtered_img)
         filtered_img = cv2.cvtColor(filtered_img, cv2.COLOR_GRAY2BGR)
+    elif filter_type == "sobel":
+        gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+        sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=5)
+        sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=5)
+        sobel_combined = cv2.sqrt(sobelx**2 + sobely**2)
+        sobel_combined = cv2.convertScaleAbs(sobel_combined)
+        filtered_img = cv2.cvtColor(sobel_combined, cv2.COLOR_GRAY2BGR)
+
     display_image(filtered_img, original=False)  # Exibe a imagem editada
 
 def refresh_canvas():
@@ -78,8 +89,10 @@ file_menu.add_command(label="Exit", command=root.quit)
 # Filters menu
 filters_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Filters", menu=filters_menu)
-filters_menu.add_command(label="Low Pass Filter", command=lambda: apply_filter("low_pass"))
-filters_menu.add_command(label="High Pass Filter", command=lambda: apply_filter("high_pass"))
+filters_menu.add_command(label="Gaussian Blur", command=lambda: apply_filter("gaussian_blur"))
+filters_menu.add_command(label="Average Blur", command=lambda: apply_filter("average_blur"))
+filters_menu.add_command(label="Laplacian", command=lambda: apply_filter("laplacian"))
+filters_menu.add_command(label="Sobel", command=lambda: apply_filter("sobel"))
 
 # Configura grid para centralizar o frame das imagens
 root.grid_columnconfigure(0, weight=1)
@@ -104,10 +117,16 @@ control_frame = tk.Frame(root, bg="#022a3b")
 control_frame.grid(row=2, column=1)  # Mantém o painel logo abaixo das imagens
 
 # Adiciona botões para aplicar os filtros
-low_pass_button = tk.Button(control_frame, text="Low Pass Filter", command=lambda: apply_filter("low_pass"))
-low_pass_button.grid(row=0, column=0, padx=10)
+gaussian_blur_button = tk.Button(control_frame, text="Gaussian Blur", command=lambda: apply_filter("gaussian_blur"))
+gaussian_blur_button.grid(row=0, column=0, padx=10)
 
-high_pass_button = tk.Button(control_frame, text="High Pass Filter", command=lambda: apply_filter("high_pass"))
-high_pass_button.grid(row=0, column=1, padx=10)
+average_blur_button = tk.Button(control_frame, text="Average Blur", command=lambda: apply_filter("average_blur"))
+average_blur_button.grid(row=0, column=1, padx=10)
+
+laplacian_button = tk.Button(control_frame, text="Laplacian", command=lambda: apply_filter("laplacian"))
+laplacian_button.grid(row=0, column=2, padx=10)
+
+sobel_button = tk.Button(control_frame, text="Sobel", command=lambda: apply_filter("sobel"))
+sobel_button.grid(row=0, column=3, padx=10)
 
 root.mainloop()
