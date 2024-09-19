@@ -49,3 +49,6 @@ Fazendo o filtro GaussianBlur na mão:
 A ideia é criar um kernel gaussiano, e aplicar esse kernel a cada pixel da imagem, realizando uma convolução.
 Primeiro, vou adicionar uma função que calcula o kernel Gaussiano, e outra função que aplica essa convolução para realizar o efeito de desfoque Gaussiano.
 
+Fazendo o filtro Filtro de Média (Blur) na mão:
+A idéia é criar um kernel de tamanho size x size com todos os valores iguais, que é normalizado dividindo pela área do kernel, com isso aplicar a convolução da imagem com o kernel de média criada, suavizando a imagem com a média dos valores de cada pixel e seus vizinhos.
+

@@ -71,6 +71,17 @@ def apply_convolution(image, kernel):
     
     return output_img
 
+def create_mean_kernel(size):
+    """ Cria um kernel de média (Filtro de Blur) manualmente """
+    kernel = np.ones((size, size), dtype=np.float32)
+    kernel /= size * size  # Normaliza para garantir que a soma seja 1
+    return kernel
+
+def apply_mean_blur_manual(image, kernel_size):
+    """ Aplica o Filtro de Média (Blur) manualmente """
+    kernel = create_mean_kernel(kernel_size)
+    return apply_convolution(image, kernel)
+
 def apply_filter(filter_type):
     if img_cv is None:
         return
@@ -84,6 +95,11 @@ def apply_filter(filter_type):
 
     elif filter_type == "average_blur":
         filtered_img = cv2.blur(img_cv, (5, 5))
+
+    elif filter_type == "average_blur_manual":
+        kernel_size = 5  # Tamanho do kernel 5x5
+        filtered_img = apply_mean_blur_manual(img_cv, kernel_size)
+
     elif filter_type == "laplacian":
         gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
         filtered_img = cv2.Laplacian(gray, cv2.CV_64F)
@@ -129,6 +145,7 @@ file_menu.add_command(label="Exit", command=root.quit)
 filters_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Filters", menu=filters_menu)
 filters_menu.add_command(label="Gaussian Blur (Manual)", command=lambda: apply_filter("gaussian_blur_manual"))
+filters_menu.add_command(label="Average Blur (Manual)", command=lambda: apply_filter("average_blur_manual"))
 filters_menu.add_command(label="Average Blur", command=lambda: apply_filter("average_blur"))
 filters_menu.add_command(label="Laplacian", command=lambda: apply_filter("laplacian"))
 filters_menu.add_command(label="Sobel", command=lambda: apply_filter("sobel"))
@@ -162,10 +179,13 @@ gaussian_blur_button.grid(row=0, column=0, padx=10)
 average_blur_button = tk.Button(control_frame, text="Average Blur", command=lambda: apply_filter("average_blur"))
 average_blur_button.grid(row=0, column=1, padx=10)
 
+average_blur_button_manual = tk.Button(control_frame, text="Average Blur (Manual)", command=lambda: apply_filter("average_blur_manual"))
+average_blur_button_manual.grid(row=0, column=2, padx=10)
+
 laplacian_button = tk.Button(control_frame, text="Laplacian", command=lambda: apply_filter("laplacian"))
-laplacian_button.grid(row=0, column=2, padx=10)
+laplacian_button.grid(row=0, column=3, padx=10)
 
 sobel_button = tk.Button(control_frame, text="Sobel", command=lambda: apply_filter("sobel"))
-sobel_button.grid(row=0, column=3, padx=10)
+sobel_button.grid(row=0, column=4, padx=10)
 
 root.mainloop()
