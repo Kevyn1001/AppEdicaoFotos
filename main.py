@@ -40,7 +40,7 @@ def display_image(img, original=False):
         edited_image_canvas.create_image(x_offset, y_offset, anchor=tk.NW, image=img_tk)
 
 def create_gaussian_kernel(size, sigma):
-    #Cria um kernel Gaussiano manualmente
+    # Cria um kernel Gaussiano manualmente
     kernel = np.zeros((size, size))
     center = size // 2
     sum_val = 0
@@ -56,60 +56,78 @@ def create_gaussian_kernel(size, sigma):
     kernel /= sum_val
     return kernel
 
-def apply_convolution(image, kernel):
-    """Aplica a convolução usando o kernel fornecido à imagem."""
-    kernel_size = kernel.shape[0]
-    pad_size = kernel_size // 2
+def apply_convolution_manual(image, kernel):
+    """Aplica a convolução manualmente usando o kernel fornecido à imagem."""
+    rows = len(image)
+    cols = len(image[0])
+    k_size = len(kernel)
+    offset = k_size // 2
 
-    # Verifica se a imagem é em escala de cinza (2D ou 3D com 1 canal)
-    if len(image.shape) == 2 or image.shape[2] == 1:  # Imagem em escala de cinza
-        # Ajusta o padding para imagem 2D (sem canais de cor)
-        padded_img = np.pad(image, pad_size, mode='constant')
-        output_img = np.zeros_like(image)
+    # Cria a matriz de saída com zeros (usar numpy para arrays 2D)
+    output_image = np.zeros((rows, cols))  # Alterado para garantir matriz 2D
 
-        # Percorre cada pixel na imagem
-        for i in range(image.shape[0]):
-            for j in range(image.shape[1]):
-                output_img[i, j] = np.sum(padded_img[i:i+kernel_size, j:j+kernel_size] * kernel)
+    # Realiza a convolução (ignora bordas por simplicidade)
+    for i in range(offset, rows - offset):
+        for j in range(offset, cols - offset):
+            sum_val = 0  # Resetar `sum_val` para cada posição de pixel
+            for ki in range(-offset, offset + 1):
+                for kj in range(-offset, offset + 1):
+                    # Realiza a multiplicação pixel a pixel
+                    pixel_val = image[i + ki][j + kj]
+                    kernel_val = kernel[offset + ki][offset + kj]
+                    sum_val += pixel_val * kernel_val
+            output_image[i][j] = sum_val  # Garantir que `sum_val` é um valor escalar
+    return output_image
 
-    else:  # Imagem colorida (RGB)
-        padded_img = np.pad(image, ((pad_size, pad_size), (pad_size, pad_size), (0, 0)), mode='constant')
-        output_img = np.zeros_like(image)
+def apply_convolution_manual_simple(image, kernel):
+    """Versão simplificada da convolução para filtros básicos."""
+    rows, cols, channels = image.shape
+    k_size = kernel.shape[0]
+    offset = k_size // 2
+    output_image = np.zeros_like(image)  # Saída para imagem colorida
 
-        # Percorre cada pixel na imagem e cada canal (R, G, B)
-        for i in range(image.shape[0]):
-            for j in range(image.shape[1]):
-                for k in range(image.shape[2]):  # Itera sobre os canais de cor corretamente
-                    output_img[i, j, k] = np.sum(padded_img[i:i+kernel_size, j:j+kernel_size, k] * kernel)
+    for ch in range(channels):  # Para cada canal da imagem (R, G, B)
+        for i in range(offset, rows - offset):
+            for j in range(offset, cols - offset):
+                sum_val = 0
+                for ki in range(-offset, offset + 1):
+                    for kj in range(-offset, offset + 1):
+                        sum_val += image[i + ki, j + kj, ch] * kernel[offset + ki, offset + kj]
+                output_image[i, j, ch] = sum_val
+    return output_image
 
-    return output_img
+def convert_to_gray(image):
+    """Converte a imagem colorida para tons de cinza"""
+    rows, cols, _ = image.shape
+    gray_image = np.zeros((rows, cols))  # Mudar para array do NumPy
+    for i in range(rows):
+        for j in range(cols):
+            # Média dos canais R, G e B
+            gray_image[i][j] = 0.2989 * image[i][j][2] + 0.5870 * image[i][j][1] + 0.1140 * image[i][j][0]
+    return gray_image
 
-def create_laplacian_kernel():
-    #Cria um kernel Laplaciano manualmente
-    laplacian_kernel = np.array([[0, -1, 0],
-                                 [-1, 4, -1],
-                                 [0, -1, 0]], dtype=np.float32)
-    return laplacian_kernel
+def apply_laplacian_manual_v2(image):
+    """Aplica o filtro Laplaciano manual sem usar bibliotecas como cv2"""
+    # Converte para escala de cinza (2D)
+    gray_image = convert_to_gray(image)
 
-def apply_laplacian_manual(image):
-    #Aplica o Filtro Laplaciano manualmente
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # Converte para escala de cinza
-    gray = np.expand_dims(gray, axis=-1)  # Adiciona uma dimensão para manter a mesma estrutura (altura, largura, canais)
-    laplacian_kernel = create_laplacian_kernel()
-    laplacian_img = apply_convolution(gray, laplacian_kernel)
-    
-    # Normaliza o valor da imagem resultante para evitar overflow
+    # Definindo o kernel Laplaciano
+    laplacian_kernel = [[0, 1, 0],
+                        [1, -4, 1],
+                        [0, 1, 0]]
+
+    # Aplicando a convolução manualmente
+    laplacian_img = apply_convolution_manual(gray_image, laplacian_kernel)
+
+    # Ajusta os valores para estarem no intervalo 0-255
     laplacian_img = np.clip(laplacian_img, 0, 255)
-    laplacian_img = laplacian_img.astype(np.uint8)
-    
-    # Converte de volta para RGB para exibir
-    laplacian_img_rgb = cv2.cvtColor(laplacian_img, cv2.COLOR_GRAY2BGR)
-    return laplacian_img_rgb
 
-def darken_image(image, factor=0.5):
-    """ Torna a imagem mais escura multiplicando os valores dos pixels pelo fator """
-    darkened_image = np.clip(image * factor, 0, 255)
-    return darkened_image.astype(np.uint8)
+    # Converte de volta para uma imagem RGB para exibir no Tkinter
+    laplacian_rgb = np.zeros((len(laplacian_img), len(laplacian_img[0]), 3), dtype=np.uint8)
+    for i in range(len(laplacian_img)):
+        for j in range(len(laplacian_img[0])):
+            laplacian_rgb[i][j] = [laplacian_img[i][j]] * 3
+    return laplacian_rgb
 
 def create_mean_kernel(size):
     #Cria um kernel de média (Filtro de Blur) manualmente
@@ -117,10 +135,18 @@ def create_mean_kernel(size):
     kernel /= size * size  # Normaliza para garantir que a soma seja 1
     return kernel
 
+def apply_gaussian_blur_manual(image, kernel_size, sigma):
+    kernel = create_gaussian_kernel(kernel_size, sigma)
+    return apply_convolution_manual_simple(image, kernel)
+
 def apply_mean_blur_manual(image, kernel_size):
-    #Aplica o Filtro de Média (Blur) manualmente
+    """Aplica o filtro de média (Average Blur) manualmente em uma imagem colorida."""
+    # Cria um kernel de média com o tamanho fornecido
     kernel = create_mean_kernel(kernel_size)
-    return apply_convolution(image, kernel)
+    
+    # Usa `apply_convolution_manual_simple` para aplicar o filtro em cada canal da imagem
+    return apply_convolution_manual_simple(image, kernel)
+
 
 def create_sobel_kernels():
     Gx = np.array([[-1, 0, 1],
@@ -134,22 +160,20 @@ def create_sobel_kernels():
 
 def apply_sobel_manual(image):
     # Converte para escala de cinza
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray = gray.astype(np.float32)  # Converte para float para evitar overflow durante a convolução
-    
+    gray = convert_to_gray(image)
+
     # Cria os kernels Sobel
     Gx, Gy = create_sobel_kernels()
     
     # Aplica a convolução com Gx e Gy
-    sobelx = apply_convolution(gray, Gx)
-    sobely = apply_convolution(gray, Gy)
+    sobelx = apply_convolution_manual(gray, Gx)
+    sobely = apply_convolution_manual(gray, Gy)
     
     # Calcula a magnitude do gradiente
     sobel_magnitude = np.sqrt(sobelx**2 + sobely**2)
     
     # Normaliza para a faixa 0-255
-    sobel_magnitude = np.clip(sobel_magnitude, 0, 255)
-    sobel_magnitude = sobel_magnitude.astype(np.uint8)
+    sobel_magnitude = np.clip(sobel_magnitude, 0, 255).astype(np.uint8)
     
     # Converte de volta para BGR para exibir
     sobel_bgr = cv2.cvtColor(sobel_magnitude, cv2.COLOR_GRAY2BGR)
@@ -158,29 +182,23 @@ def apply_sobel_manual(image):
 def apply_filter(filter_type):
     if img_cv is None:
         return
-    
+
     filtered_img = None
 
     if filter_type == "gaussian_blur_manual":
-        # Definindo os parâmetros para o filtro Gaussiano manual
         kernel_size = 15
         sigma = 2.0
-        gaussian_kernel = create_gaussian_kernel(kernel_size, sigma)
-        filtered_img = apply_convolution(img_cv, gaussian_kernel)
-
-    elif filter_type == "average_blur":
-        filtered_img = cv2.blur(img_cv, (5, 5))
+        filtered_img = apply_gaussian_blur_manual(img_cv, kernel_size, sigma)
 
     elif filter_type == "average_blur_manual":
-        kernel_size = 5  # Tamanho do kernel 5x5
+        kernel_size = 5
         filtered_img = apply_mean_blur_manual(img_cv, kernel_size)
 
-    elif filter_type == "laplacian_manual":
-        filtered_img = apply_laplacian_manual(img_cv)
-        filtered_img = darken_image(filtered_img, factor=0.1)  # Ajuste o fator para escurecer mais ou menos
-
-    elif filter_type == "sobel_manual":
-        filtered_img = apply_sobel_manual(img_cv)
+    elif filter_type in ["laplacian_manual", "sobel_manual"]:
+        if filter_type == "laplacian_manual":
+            filtered_img = apply_laplacian_manual_v2(img_cv)
+        elif filter_type == "sobel_manual":
+            filtered_img = apply_sobel_manual(img_cv)
 
     display_image(filtered_img, original=False)
 
