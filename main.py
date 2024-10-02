@@ -39,7 +39,6 @@ def display_image(img, original=False):
         edited_image_canvas.image = img_tk
         edited_image_canvas.create_image(x_offset, y_offset, anchor=tk.NW, image=img_tk)
 
-
 def create_gaussian_kernel(size, sigma):
     #Cria um kernel Gaussiano manualmente
     kernel = np.zeros((size, size))
@@ -123,6 +122,39 @@ def apply_mean_blur_manual(image, kernel_size):
     kernel = create_mean_kernel(kernel_size)
     return apply_convolution(image, kernel)
 
+def create_sobel_kernels():
+    Gx = np.array([[-1, 0, 1],
+                  [-2, 0, 2],
+                  [-1, 0, 1]], dtype=np.float32)
+    
+    Gy = np.array([[1, 2, 1],
+                  [0, 0, 0],
+                  [-1, -2, -1]], dtype=np.float32)
+    return Gx, Gy
+
+def apply_sobel_manual(image):
+    # Converte para escala de cinza
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = gray.astype(np.float32)  # Converte para float para evitar overflow durante a convolução
+    
+    # Cria os kernels Sobel
+    Gx, Gy = create_sobel_kernels()
+    
+    # Aplica a convolução com Gx e Gy
+    sobelx = apply_convolution(gray, Gx)
+    sobely = apply_convolution(gray, Gy)
+    
+    # Calcula a magnitude do gradiente
+    sobel_magnitude = np.sqrt(sobelx**2 + sobely**2)
+    
+    # Normaliza para a faixa 0-255
+    sobel_magnitude = np.clip(sobel_magnitude, 0, 255)
+    sobel_magnitude = sobel_magnitude.astype(np.uint8)
+    
+    # Converte de volta para BGR para exibir
+    sobel_bgr = cv2.cvtColor(sobel_magnitude, cv2.COLOR_GRAY2BGR)
+    return sobel_bgr
+
 def apply_filter(filter_type):
     if img_cv is None:
         return
@@ -147,13 +179,8 @@ def apply_filter(filter_type):
         filtered_img = apply_laplacian_manual(img_cv)
         filtered_img = darken_image(filtered_img, factor=0.1)  # Ajuste o fator para escurecer mais ou menos
 
-    elif filter_type == "sobel":
-        gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-        sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=5)
-        sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=5)
-        sobel_combined = cv2.sqrt(sobelx**2 + sobely**2)
-        sobel_combined = cv2.convertScaleAbs(sobel_combined)
-        filtered_img = cv2.cvtColor(sobel_combined, cv2.COLOR_GRAY2BGR)
+    elif filter_type == "sobel_manual":
+        filtered_img = apply_sobel_manual(img_cv)
 
     display_image(filtered_img, original=False)
 
@@ -188,9 +215,8 @@ filters_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Filters", menu=filters_menu)
 filters_menu.add_command(label="Gaussian Blur (Manual)", command=lambda: apply_filter("gaussian_blur_manual"))
 filters_menu.add_command(label="Average Blur (Manual)", command=lambda: apply_filter("average_blur_manual"))
-filters_menu.add_command(label="Average Blur", command=lambda: apply_filter("average_blur"))
 filters_menu.add_command(label="Laplacian (Manual)", command=lambda: apply_filter("laplacian_manual"))
-filters_menu.add_command(label="Sobel", command=lambda: apply_filter("sobel"))
+filters_menu.add_command(label="Sobel (Manual)", command=lambda: apply_filter("sobel_manual"))
 
 # Configura grid para centralizar o frame das imagens
 root.grid_columnconfigure(0, weight=1)
@@ -218,16 +244,13 @@ control_frame.grid(row=2, column=1)  # Mantém o painel logo abaixo das imagens
 gaussian_blur_button = tk.Button(control_frame, text="Gaussian Blur (Manual)", command=lambda: apply_filter("gaussian_blur_manual"))
 gaussian_blur_button.grid(row=0, column=0, padx=10)
 
-average_blur_button = tk.Button(control_frame, text="Average Blur", command=lambda: apply_filter("average_blur"))
-average_blur_button.grid(row=0, column=1, padx=10)
-
 average_blur_button_manual = tk.Button(control_frame, text="Average Blur (Manual)", command=lambda: apply_filter("average_blur_manual"))
 average_blur_button_manual.grid(row=0, column=2, padx=10)
 
 laplacian_button = tk.Button(control_frame, text="Laplacian (Manual)", command=lambda: apply_filter("laplacian_manual"))
 laplacian_button.grid(row=0, column=3, padx=10)
 
-sobel_button = tk.Button(control_frame, text="Sobel", command=lambda: apply_filter("sobel"))
-sobel_button.grid(row=0, column=4, padx=10)
+sobel_button_manual = tk.Button(control_frame, text="Sobel (Manual)", command=lambda: apply_filter("sobel_manual"))
+sobel_button_manual.grid(row=0, column=4, padx=10)
 
 root.mainloop()
