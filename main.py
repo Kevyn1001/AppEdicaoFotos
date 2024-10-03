@@ -207,7 +207,7 @@ def refresh_canvas():
 
 # Definindo a GUI
 root = tk.Tk()
-root.title("Image Processing App")
+root.title("HK ImageEditor")
 
 # Define o tamanho da janela da aplicação
 root.geometry("1200x600")
