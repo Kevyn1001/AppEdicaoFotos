@@ -20,12 +20,10 @@ def display_image(img, original=False):
     # Obtém o tamanho da imagem original
     img_width, img_height = img_pil.size
     
-    # Redimensiona a imagem para caber no canvas se for muito grande
+    # Redimensiona a imagem se for muito grande
     max_size = 500
-    img_pil.thumbnail((max_size, max_size))  # Mantém a proporção
+    img_pil.thumbnail((max_size, max_size)) 
     img_tk = ImageTk.PhotoImage(img_pil)
-
-    # Calcula a posição para centralizar a imagem dentro do canvas
     canvas_width, canvas_height = max_size, max_size
     x_offset = (canvas_width - img_pil.width) // 2
     y_offset = (canvas_height - img_pil.height) // 2
@@ -57,30 +55,30 @@ def create_gaussian_kernel(size, sigma):
     return kernel
 
 def apply_convolution_manual(image, kernel):
-    """Aplica a convolução manualmente usando o kernel fornecido à imagem."""
+    # Aplica a convolução manualmente usando o kernel fornecido à imagem.
     rows = len(image)
     cols = len(image[0])
     k_size = len(kernel)
     offset = k_size // 2
 
-    # Cria a matriz de saída com zeros (usar numpy para arrays 2D)
-    output_image = np.zeros((rows, cols))  # Alterado para garantir matriz 2D
+    # Cria a matriz de saída com zeros
+    output_image = np.zeros((rows, cols))  # Usamos o numpy para garantir a matriz 2D
 
-    # Realiza a convolução (ignora bordas por simplicidade)
+    # Realiza a convolução
     for i in range(offset, rows - offset):
         for j in range(offset, cols - offset):
-            sum_val = 0  # Resetar `sum_val` para cada posição de pixel
+            sum_val = 0  # Reseta `sum_val` para cada posição de pixel
             for ki in range(-offset, offset + 1):
                 for kj in range(-offset, offset + 1):
                     # Realiza a multiplicação pixel a pixel
                     pixel_val = image[i + ki][j + kj]
                     kernel_val = kernel[offset + ki][offset + kj]
                     sum_val += pixel_val * kernel_val
-            output_image[i][j] = sum_val  # Garantir que `sum_val` é um valor escalar
+            output_image[i][j] = sum_val  # Garante que `sum_val` é um valor escalar
     return output_image
 
 def apply_convolution_manual_simple(image, kernel):
-    """Versão simplificada da convolução para filtros básicos."""
+    # Versão simplificada da convolução para filtros básicos.
     rows, cols, channels = image.shape
     k_size = kernel.shape[0]
     offset = k_size // 2
@@ -97,7 +95,7 @@ def apply_convolution_manual_simple(image, kernel):
     return output_image
 
 def convert_to_gray(image):
-    """Converte a imagem colorida para tons de cinza"""
+    # Converte a imagem colorida para tons de cinza
     rows, cols, _ = image.shape
     gray_image = np.zeros((rows, cols))  # Mudar para array do NumPy
     for i in range(rows):
@@ -107,16 +105,16 @@ def convert_to_gray(image):
     return gray_image
 
 def apply_laplacian_manual_v2(image):
-    """Aplica o filtro Laplaciano manual sem usar bibliotecas como cv2"""
+    #Aplica o filtro Laplaciano manual 
     # Converte para escala de cinza (2D)
     gray_image = convert_to_gray(image)
 
-    # Definindo o kernel Laplaciano
+    # Define o kernel Laplaciano
     laplacian_kernel = [[0, 1, 0],
                         [1, -4, 1],
                         [0, 1, 0]]
 
-    # Aplicando a convolução manualmente
+    # Aplica a convolução manualmente
     laplacian_img = apply_convolution_manual(gray_image, laplacian_kernel)
 
     # Ajusta os valores para estarem no intervalo 0-255
@@ -140,11 +138,9 @@ def apply_gaussian_blur_manual(image, kernel_size, sigma):
     return apply_convolution_manual_simple(image, kernel)
 
 def apply_mean_blur_manual(image, kernel_size):
-    """Aplica o filtro de média (Average Blur) manualmente em uma imagem colorida."""
     # Cria um kernel de média com o tamanho fornecido
     kernel = create_mean_kernel(kernel_size)
     
-    # Usa `apply_convolution_manual_simple` para aplicar o filtro em cada canal da imagem
     return apply_convolution_manual_simple(image, kernel)
 
 
@@ -165,7 +161,7 @@ def apply_sobel_manual(image):
     # Cria os kernels Sobel
     Gx, Gy = create_sobel_kernels()
     
-    # Aplica a convolução com Gx e Gy
+    # Aplica a convolução 
     sobelx = apply_convolution_manual(gray, Gx)
     sobely = apply_convolution_manual(gray, Gy)
     
@@ -205,19 +201,19 @@ def apply_filter(filter_type):
 def refresh_canvas():
     edited_image_canvas.delete("all")  # Limpa a canvas para exibir a nova imagem
 
-# Definindo a GUI
+# GUI
 root = tk.Tk()
 root.title("HK ImageEditor")
 
-# Define o tamanho da janela da aplicação
+# Tamanho da janela da aplicação
 root.geometry("1200x600")
 
-# Define a cor de fundo da janela
+# Cor de fundo da janela
 root.config(bg="#022a3b")
 
 img_cv = None
 
-# Cria o menu da aplicação
+# Menu da aplicação
 menu_bar = tk.Menu(root)
 root.config(menu=menu_bar)
 
@@ -236,7 +232,7 @@ filters_menu.add_command(label="Average Blur (Manual)", command=lambda: apply_fi
 filters_menu.add_command(label="Laplacian (Manual)", command=lambda: apply_filter("laplacian_manual"))
 filters_menu.add_command(label="Sobel (Manual)", command=lambda: apply_filter("sobel_manual"))
 
-# Configura grid para centralizar o frame das imagens
+# Grid para centralizar o frame das imagens
 root.grid_columnconfigure(0, weight=1)
 root.grid_columnconfigure(2, weight=1)
 root.grid_rowconfigure(0, weight=1)
@@ -254,11 +250,11 @@ original_image_canvas.grid(row=0, column=0, padx=10, pady=10)
 edited_image_canvas = tk.Canvas(image_frame, width=500, height=500, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
 edited_image_canvas.grid(row=0, column=1, padx=10, pady=10)
 
-# Cria um painel de controle para os botões logo abaixo das imagens
+# Botões logo abaixo das imagens
 control_frame = tk.Frame(root, bg="#022a3b")
 control_frame.grid(row=2, column=1)  # Mantém o painel logo abaixo das imagens
 
-# Adiciona botões para aplicar os filtros
+# Botões para aplicar os filtros
 gaussian_blur_button = tk.Button(control_frame, text="Gaussian Blur (Manual)", command=lambda: apply_filter("gaussian_blur_manual"))
 gaussian_blur_button.grid(row=0, column=0, padx=10)
 
