@@ -127,7 +127,7 @@ def apply_laplacian_manual_v2(image):
             laplacian_rgb[i][j] = [laplacian_img[i][j]] * 3
     return laplacian_rgb
 
-def create_mean_kernel(size):
+def create_avarage_kernel(size):
     #Cria um kernel de média (Filtro de Blur) manualmente
     kernel = np.ones((size, size), dtype=np.float32)
     kernel /= size * size  # Normaliza para garantir que a soma seja 1
@@ -137,9 +137,9 @@ def apply_gaussian_blur_manual(image, kernel_size, sigma):
     kernel = create_gaussian_kernel(kernel_size, sigma)
     return apply_convolution_manual_simple(image, kernel)
 
-def apply_mean_blur_manual(image, kernel_size):
+def apply_avarage_blur_manual(image, kernel_size):
     # Cria um kernel de média com o tamanho fornecido
-    kernel = create_mean_kernel(kernel_size)
+    kernel = create_avarage_kernel(kernel_size)
     
     return apply_convolution_manual_simple(image, kernel)
 
@@ -188,7 +188,7 @@ def apply_filter(filter_type):
 
     elif filter_type == "average_blur_manual":
         kernel_size = 5
-        filtered_img = apply_mean_blur_manual(img_cv, kernel_size)
+        filtered_img = apply_avarage_blur_manual(img_cv, kernel_size)
 
     elif filter_type in ["laplacian_manual", "sobel_manual"]:
         if filter_type == "laplacian_manual":
