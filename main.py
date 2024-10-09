@@ -54,7 +54,7 @@ def create_gaussian_kernel(size, sigma):
     kernel /= sum_val
     return kernel
 
-def apply_convolution_manual(image, kernel):
+def apply_convolution_manual_2D(image, kernel):
     # Aplica a convolução manualmente usando o kernel fornecido à imagem.
     rows = len(image)
     cols = len(image[0])
@@ -77,7 +77,7 @@ def apply_convolution_manual(image, kernel):
             output_image[i][j] = sum_val  # Garante que `sum_val` é um valor escalar
     return output_image
 
-def apply_convolution_manual_simple(image, kernel):
+def apply_convolution_manual_3D(image, kernel):
     # Versão simplificada da convolução para filtros básicos.
     rows, cols, channels = image.shape
     k_size = kernel.shape[0]
@@ -115,7 +115,7 @@ def apply_laplacian_manual_v2(image):
                         [0, 1, 0]]
 
     # Aplica a convolução manualmente
-    laplacian_img = apply_convolution_manual(gray_image, laplacian_kernel)
+    laplacian_img = apply_convolution_manual_2D(gray_image, laplacian_kernel)
 
     # Ajusta os valores para estarem no intervalo 0-255
     laplacian_img = np.clip(laplacian_img, 0, 255)
@@ -135,13 +135,13 @@ def create_avarage_kernel(size):
 
 def apply_gaussian_blur_manual(image, kernel_size, sigma):
     kernel = create_gaussian_kernel(kernel_size, sigma)
-    return apply_convolution_manual_simple(image, kernel)
+    return apply_convolution_manual_3D(image, kernel)
 
 def apply_avarage_blur_manual(image, kernel_size):
     # Cria um kernel de média com o tamanho fornecido
     kernel = create_avarage_kernel(kernel_size)
     
-    return apply_convolution_manual_simple(image, kernel)
+    return apply_convolution_manual_3D(image, kernel)
 
 
 def create_sobel_kernels():
@@ -162,8 +162,8 @@ def apply_sobel_manual(image):
     Gx, Gy = create_sobel_kernels()
     
     # Aplica a convolução 
-    sobelx = apply_convolution_manual(gray, Gx)
-    sobely = apply_convolution_manual(gray, Gy)
+    sobelx = apply_convolution_manual_2D(gray, Gx)
+    sobely = apply_convolution_manual_2D(gray, Gy)
     
     # Calcula a magnitude do gradiente
     sobel_magnitude = np.sqrt(sobelx**2 + sobely**2)
