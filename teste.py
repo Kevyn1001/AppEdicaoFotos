@@ -61,40 +61,19 @@ def apply_manual_threshold(value):
     display_image(binarized_img, original=False)
     update_histogram()  # Atualiza o histograma com a nova linha de limiar
 
-# Função genérica para filtros (caso precise aplicar filtros adicionais)
-def apply_filter(filter_type):
+# Função para aplicar o thresholding adaptativo
+def apply_adaptive_threshold():
     if img_cv is None:
         return
-
-    if filter_type == "gaussian_blur":
-        kernel_size = 15
-        sigma = 2.0
-        kernel = cv2.getGaussianKernel(kernel_size, sigma)
-        kernel = kernel @ kernel.T
-        filtered_img = cv2.filter2D(img_cv, -1, kernel)
-
-    elif filter_type == "average_blur":
-        kernel_size = 5
-        kernel = np.ones((kernel_size, kernel_size), dtype=np.float32) / (kernel_size * kernel_size)
-        filtered_img = cv2.filter2D(img_cv, -1, kernel)
-
-    elif filter_type == "laplacian":
-        laplacian_kernel = np.array([[0, 1, 0],
-                                     [1, -4, 1],
-                                     [0, 1, 0]], dtype=np.float32)
-        filtered_img = cv2.filter2D(img_cv, -1, laplacian_kernel)
-
-    elif filter_type == "sobel":
-        sobelx = cv2.Sobel(img_cv, cv2.CV_64F, 1, 0, ksize=3)
-        sobely = cv2.Sobel(img_cv, cv2.CV_64F, 0, 1, ksize=3)
-        sobel_magnitude = cv2.magnitude(sobelx, sobely)
-        filtered_img = cv2.convertScaleAbs(sobel_magnitude)
-
-    display_image(filtered_img, original=False)
+    
+    # Aplicação do thresholding adaptativo usando o método Gaussian
+    adaptive_img = cv2.adaptiveThreshold(img_cv, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                         cv2.THRESH_BINARY, 11, 2)
+    display_image(adaptive_img, original=False)
 
 # Interface do Tkinter com scrollbar
 root = tk.Tk()
-root.title("Threshold Manual")
+root.title("Threshold Manual e Adaptativo")
 
 # Frame principal com canvas e barra de rolagem
 main_frame = tk.Frame(root)
@@ -128,7 +107,7 @@ processed_image_canvas = tk.Canvas(scrollable_frame, width=300, height=300, bg="
 processed_image_canvas.grid(row=0, column=2, padx=10, pady=10)
 
 # Slider para ajustar o limiar manualmente
-threshold_slider = tk.Scale(scrollable_frame, from_=0, to=255, orient="horizontal", command=apply_manual_threshold, label="Threshold")
+threshold_slider = tk.Scale(scrollable_frame, from_=0, to=255, orient="horizontal", command=apply_manual_threshold, label="Threshold Binário")
 threshold_slider.set(threshold_value)
 threshold_slider.grid(row=1, column=0, columnspan=3, padx=10, pady=10, sticky="we")
 
@@ -136,20 +115,8 @@ threshold_slider.grid(row=1, column=0, columnspan=3, padx=10, pady=10, sticky="w
 load_button = tk.Button(scrollable_frame, text="Load Image", command=load_image)
 load_button.grid(row=2, column=0, columnspan=3, pady=10)
 
-# Botões para aplicar filtros
-control_frame = tk.Frame(scrollable_frame)
-control_frame.grid(row=3, column=0, columnspan=3)
-
-gaussian_blur_button = tk.Button(control_frame, text="Gaussian Blur", command=lambda: apply_filter("gaussian_blur"))
-gaussian_blur_button.grid(row=0, column=0, padx=10)
-
-average_blur_button = tk.Button(control_frame, text="Average Blur", command=lambda: apply_filter("average_blur"))
-average_blur_button.grid(row=0, column=1, padx=10)
-
-laplacian_button = tk.Button(control_frame, text="Laplacian", command=lambda: apply_filter("laplacian"))
-laplacian_button.grid(row=0, column=2, padx=10)
-
-sobel_button = tk.Button(control_frame, text="Sobel", command=lambda: apply_filter("sobel"))
-sobel_button.grid(row=0, column=3, padx=10)
+# Botão para aplicar o thresholding adaptativo
+adaptive_thresh_button = tk.Button(scrollable_frame, text="Threshold Adaptativo", command=apply_adaptive_threshold)
+adaptive_thresh_button.grid(row=3, column=0, columnspan=3, pady=10)
 
 root.mainloop()
