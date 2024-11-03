@@ -1,0 +1,112 @@
+Vamos utilizar estes:
+
+Os filtros de imagem podem ser categorizados como **filtros passa-baixa** ou **filtros passa-alta**, dependendo de como eles processam as frequências da imagem.
+
+### Filtros Passa-Baixa:
+Filtros passa-baixa são utilizados para suavizar uma imagem, removendo detalhes finos e ruídos. Esses filtros deixam passar as frequências mais baixas e atenuam as mais altas. Alguns exemplos são:
+
+1. **Filtro Gaussiano**:
+   - **Função**: Suaviza a imagem borrando-a de forma suave.
+   - **Como Funciona**: Aplica um filtro Gaussiano, que é uma função de média ponderada onde os pesos decrescem à medida que se afastam do ponto central.
+
+   ```python
+   import cv2
+   img = cv2.imread('imagem.jpg')
+   blurred_img = cv2.GaussianBlur(img, (15, 15), 0)  # (15, 15) define o tamanho do kernel
+   ```
+
+2. **Filtro de Média (Blur)**:
+   - **Função**: Suaviza a imagem através da média simples de todos os pixels ao redor de um determinado pixel.
+   - **Como Funciona**: O filtro substitui o valor de cada pixel pela média dos pixels ao seu redor, resultando em uma imagem mais suave.
+
+   ```python
+   blurred_img = cv2.blur(img, (5, 5))  # (5, 5) é o tamanho do kernel
+   ```
+
+### Filtros Passa-Alta:
+Filtros passa-alta são usados para realçar os detalhes de uma imagem, como bordas e mudanças bruscas de intensidade. Esses filtros deixam passar as frequências mais altas e atenuam as mais baixas. Exemplos comuns incluem:
+
+1. **Filtro Laplaciano**:
+   - **Função**: Detecta bordas realçando as áreas de transição abrupta de intensidade.
+   - **Como Funciona**: Aplica o operador Laplaciano, que calcula a segunda derivada da imagem, realçando mudanças bruscas de cor.
+
+   ```python
+   laplacian_img = cv2.Laplacian(img, cv2.CV_64F)
+   ```
+
+2. **Filtro Sobel**:
+   - **Função**: Realça bordas de acordo com a direção, seja horizontal, vertical ou diagonal.
+   - **Como Funciona**: Aplica derivadas parciais da imagem para detectar as bordas em diferentes direções.
+
+   ```python
+   sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=5)  # Borda horizontal
+   sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=5)  # Borda vertical
+   ```
+
+Os filtros passa-baixa ajudam a suavizar a imagem, enquanto os filtros passa-alta são úteis para realçar detalhes e bordas.
+
+Fazendo o filtro GaussianBlur na mão:
+A ideia é criar um kernel gaussiano, e aplicar esse kernel a cada pixel da imagem, realizando uma convolução.
+Primeiro, vou adicionar uma função que calcula o kernel Gaussiano, e outra função que aplica essa convolução para realizar o efeito de desfoque Gaussiano.
+
+Fazendo o filtro Filtro de Média (Blur) na mão:
+A idéia é criar um kernel de tamanho size x size com todos os valores iguais, que é normalizado dividindo pela área do kernel, com isso aplicar a convolução da imagem com o kernel de média criada, suavizando a imagem com a média dos valores de cada pixel e seus vizinhos.
+
+
+###### ETAPA 2 ########
+
+
+A Etapa 2 exige que você expanda seu aplicativo de processamento de imagens adicionando **operações morfológicas** e **técnicas de segmentação**. Aqui está o que cada requisito envolve:
+
+### 1. Operações Morfológicas
+
+Operações morfológicas são técnicas aplicadas a imagens binárias para modificar a estrutura de objetos. Elas são usadas principalmente para reduzir ruídos, suavizar bordas e preencher lacunas. Vamos entender cada operação:
+
+- **Erosão**:
+  - Diminui o tamanho das áreas brancas (ou do primeiro plano), removendo pequenos ruídos ou detalhes menores da imagem.
+  - É útil para eliminar pequenos pontos isolados.
+
+- **Dilatação**:
+  - Expande as áreas brancas, aumentando o tamanho dos objetos no primeiro plano.
+  - É útil para preencher pequenos buracos ou lacunas nos objetos da imagem.
+
+- **Abertura e Fechamento**:
+  - **Abertura** é uma erosão seguida de uma dilatação. É usada para remover pequenos ruídos sem alterar significativamente o tamanho dos objetos.
+  - **Fechamento** é uma dilatação seguida de uma erosão. É usada para preencher buracos nas áreas de primeiro plano e suavizar as bordas dos objetos.
+  - Ambos ajudam a melhorar a definição de bordas e remover ruídos.
+
+Para implementar essas operações, você vai precisar de uma função para cada operação que aplique essas transformações na imagem carregada.
+
+### 2. Segmentação de Imagem
+
+A segmentação é o processo de dividir uma imagem em diferentes partes ou regiões, geralmente para isolar objetos do fundo. Os requisitos incluem:
+
+- **Limiarização (Thresholding)**:
+  - **Limiarização Binária** é uma técnica em que os pixels da imagem são convertidos para preto ou branco com base em um valor de limiar fixo. Se um pixel estiver acima do limiar, é branco (primeiro plano); se estiver abaixo, é preto (fundo).
+  - Essa técnica é simples e eficaz para imagens com boa separação entre o objeto e o fundo.
+
+- **Limiarização Adaptativa (Otsu)**:
+  - A **limiarização adaptativa** ou **Otsu** ajusta automaticamente o limiar para diferentes áreas da imagem, sendo útil para imagens com iluminação irregular.
+  - O método de Otsu calcula o melhor limiar global para segmentar automaticamente a imagem, o que é eficaz quando as condições de iluminação variam.
+
+### 3. Interface Interativa
+
+Para que o usuário possa aplicar essas operações morfológicas e de segmentação, você deve adicionar **opções no menu** do aplicativo:
+
+- Adicionar itens no menu ou botões específicos para cada operação (Erosão, Dilatação, Abertura, Fechamento, Thresholding, e Thresholding Adaptativo).
+- A interface deve permitir ao usuário aplicar essas operações e ver o efeito na imagem em tempo real.
+
+### Observação Importante
+
+A segmentação deve vir **antes das operações morfológicas**. Isso porque, para que as operações morfológicas funcionem corretamente, é preciso que a imagem já esteja segmentada, ou seja, que o primeiro plano e o fundo estejam bem definidos.
+
+### Exemplo de Implementação
+
+1. **Segmentar** a imagem primeiro usando uma técnica de limiarização.
+2. **Aplicar operações morfológicas** na imagem segmentada para refinar a imagem resultante.
+
+Com isso, seu aplicativo será capaz de:
+- Remover ruídos
+- Suavizar bordas dos objetos
+- Preencher lacunas
+- Segmentar objetos do fundo
