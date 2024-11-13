@@ -102,6 +102,37 @@ def apply_auto_binary_threshold():
     display_image(binarized_img, original=False)
     update_histogram()
 
+# Função para aplicar filtros adicionais (Gaussian Blur, Average Blur, Laplacian, Sobel)
+def apply_filter(filter_type):
+    if img_cv is None:
+        return
+
+    if filter_type == "gaussian_blur":
+        kernel_size = 15
+        sigma = 2.0
+        kernel = cv2.getGaussianKernel(kernel_size, sigma)
+        kernel = kernel @ kernel.T
+        filtered_img = cv2.filter2D(img_cv, -1, kernel)
+
+    elif filter_type == "average_blur":
+        kernel_size = 5
+        kernel = np.ones((kernel_size, kernel_size), dtype=np.float32) / (kernel_size * kernel_size)
+        filtered_img = cv2.filter2D(img_cv, -1, kernel)
+
+    elif filter_type == "laplacian":
+        laplacian_kernel = np.array([[0, 1, 0],
+                                     [1, -4, 1],
+                                     [0, 1, 0]], dtype=np.float32)
+        filtered_img = cv2.filter2D(img_cv, -1, laplacian_kernel)
+
+    elif filter_type == "sobel":
+        sobelx = cv2.Sobel(img_cv, cv2.CV_64F, 1, 0, ksize=3)
+        sobely = cv2.Sobel(img_cv, cv2.CV_64F, 0, 1, ksize=3)
+        sobel_magnitude = cv2.magnitude(sobelx, sobely)
+        filtered_img = cv2.convertScaleAbs(sobel_magnitude)
+
+    display_image(filtered_img, original=False)
+
 # Funções de Operações Morfológicas
 def apply_erosion():
     if img_cv is None:
@@ -167,6 +198,19 @@ opening_button.pack(pady=5)
 
 closing_button = tk.Button(root, text="Fechamento", command=apply_closing)
 closing_button.pack(pady=5)
+
+# Botões para aplicar filtros adicionais
+gaussian_blur_button = tk.Button(root, text="Gaussian Blur", command=lambda: apply_filter("gaussian_blur"))
+gaussian_blur_button.pack(pady=5)
+
+average_blur_button = tk.Button(root, text="Average Blur", command=lambda: apply_filter("average_blur"))
+average_blur_button.pack(pady=5)
+
+laplacian_button = tk.Button(root, text="Laplacian", command=lambda: apply_filter("laplacian"))
+laplacian_button.pack(pady=5)
+
+sobel_button = tk.Button(root, text="Sobel", command=lambda: apply_filter("sobel"))
+sobel_button.pack(pady=5)
 
 # Criação das janelas para a imagem original, histograma e imagem processada
 create_original_window()
