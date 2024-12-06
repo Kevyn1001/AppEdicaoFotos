@@ -6,33 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-# Variáveis globais para imagem e limiar
+# Variáveis globais
 img_cv = None
 threshold_value = 79
-
-# Funções para criar as janelas de imagem original, histograma e imagem processada
-def create_original_window():
-    global original_image_canvas
-    original_window = tk.Toplevel(root)
-    original_window.title("Imagem Original")
-    original_image_canvas = tk.Canvas(original_window, width=300, height=300, bg="gray")
-    original_image_canvas.pack(padx=10, pady=10)
-
-def create_histogram_window():
-    global histogram_canvas, hist_frame
-    histogram_window = tk.Toplevel(root)
-    histogram_window.title("Histograma")
-    hist_frame = tk.Frame(histogram_window, width=300, height=300, bg="gray")
-    hist_frame.pack(padx=10, pady=10)
-    histogram_canvas = FigureCanvasTkAgg(plt.figure(figsize=(4, 3)), master=hist_frame)
-    histogram_canvas.get_tk_widget().pack()
-
-def create_processed_window():
-    global processed_image_canvas
-    processed_window = tk.Toplevel(root)
-    processed_window.title("Imagem Processada")
-    processed_image_canvas = tk.Canvas(processed_window, width=300, height=300, bg="gray")
-    processed_image_canvas.pack(padx=10, pady=10)
 
 # Função para carregar a imagem
 def load_image():
@@ -46,7 +22,7 @@ def load_image():
 # Função para exibir a imagem no Tkinter
 def display_image(img, original=False):
     img_pil = Image.fromarray(img)
-    img_pil.thumbnail((300, 300)) 
+    img_pil.thumbnail((300, 300))
     img_tk = ImageTk.PhotoImage(img_pil)
 
     if original:
@@ -61,8 +37,9 @@ def display_image(img, original=False):
 # Função para atualizar o histograma com a linha de limiar
 def update_histogram():
     global histogram_canvas
-    histogram_canvas.get_tk_widget().pack_forget()
-    
+    for widget in histogram_frame.winfo_children():
+        widget.destroy()
+
     fig, ax = plt.subplots(figsize=(4, 3))
     ax.hist(img_cv.ravel(), bins=256, range=(0, 256), color='gray')
     ax.axvline(threshold_value, color='red', linestyle='--')  # Linha de limiar
@@ -70,7 +47,7 @@ def update_histogram():
     ax.set_xlabel("Pixel Intensity")
     ax.set_ylabel("Frequency")
 
-    histogram_canvas = FigureCanvasTkAgg(fig, master=hist_frame)
+    histogram_canvas = FigureCanvasTkAgg(fig, master=histogram_frame)
     histogram_canvas.draw()
     histogram_canvas.get_tk_widget().pack()
 
@@ -78,7 +55,6 @@ def update_histogram():
 def apply_manual_threshold(value):
     global threshold_value
     threshold_value = int(value)
-    
     _, binarized_img = cv2.threshold(img_cv, threshold_value, 255, cv2.THRESH_BINARY)
     display_image(binarized_img, original=False)
     update_histogram()
@@ -87,7 +63,6 @@ def apply_manual_threshold(value):
 def apply_adaptive_threshold():
     if img_cv is None:
         return
-    
     adaptive_img = cv2.adaptiveThreshold(img_cv, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                          cv2.THRESH_BINARY, 11, 2)
     display_image(adaptive_img, original=False)
@@ -137,7 +112,6 @@ def apply_filter(filter_type):
 def apply_erosion():
     if img_cv is None:
         return
-    
     kernel = np.ones((5, 5), np.uint8)
     eroded_img = cv2.erode(img_cv, kernel, iterations=1)
     display_image(eroded_img, original=False)
@@ -145,7 +119,6 @@ def apply_erosion():
 def apply_dilation():
     if img_cv is None:
         return
-    
     kernel = np.ones((5, 5), np.uint8)
     dilated_img = cv2.dilate(img_cv, kernel, iterations=1)
     display_image(dilated_img, original=False)
@@ -153,7 +126,6 @@ def apply_dilation():
 def apply_opening():
     if img_cv is None:
         return
-    
     kernel = np.ones((5, 5), np.uint8)
     opened_img = cv2.morphologyEx(img_cv, cv2.MORPH_OPEN, kernel)
     display_image(opened_img, original=False)
@@ -161,60 +133,68 @@ def apply_opening():
 def apply_closing():
     if img_cv is None:
         return
-    
     kernel = np.ones((5, 5), np.uint8)
     closed_img = cv2.morphologyEx(img_cv, cv2.MORPH_CLOSE, kernel)
     display_image(closed_img, original=False)
 
 # Interface principal do Tkinter
 root = tk.Tk()
-root.title("Operações Morfológicas e Segmentação")
+root.title("HK PhotoEditor")
+root.geometry("1200x600")
+
+# Frame para exibir imagens
+image_frame = tk.Frame(root, width=900, height=300, bg="white")
+image_frame.pack(side=tk.TOP, fill=tk.BOTH, padx=10, pady=10)
+
+# Canvas para imagem original
+original_image_canvas = tk.Canvas(image_frame, width=300, height=300, bg="gray")
+original_image_canvas.pack(side=tk.LEFT, padx=10)
+
+# Frame para histograma
+histogram_frame = tk.Frame(image_frame, width=300, height=300, bg="gray")
+histogram_frame.pack(side=tk.LEFT, padx=10)
+
+# Canvas para imagem processada
+processed_image_canvas = tk.Canvas(image_frame, width=300, height=300, bg="gray")
+processed_image_canvas.pack(side=tk.LEFT, padx=10)
+
+# Frame para botões e sliders
+controls_frame = tk.Frame(root)
+controls_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=350, pady=10)
 
 # Botão para carregar a imagem
 load_button = tk.Button(root, text="Load Image", command=load_image)
 load_button.pack(pady=5)
 
+# Organização dos botões em grid (3 botões por linha)
+buttons = [
+    ("Threshold Adaptativo", apply_adaptive_threshold),
+    ("Threshold Automático", apply_auto_binary_threshold),
+    ("Erosão", apply_erosion),
+    ("Dilatação", apply_dilation),
+    ("Abertura", apply_opening),
+    ("Fechamento", apply_closing),
+    ("Gaussian Blur", lambda: apply_filter("gaussian_blur")),
+    ("Average Blur", lambda: apply_filter("average_blur")),
+    ("Laplacian", lambda: apply_filter("laplacian")),
+    ("Sobel", lambda: apply_filter("sobel")),
+]
+
+# Criando botões em grade
+for i, (text, command) in enumerate(buttons):
+    row, col = divmod(i, 3)  # Calcula a posição na grade (linha e coluna)
+    tk.Button(controls_frame, text=text, command=command, width=20).grid(row=row, column=col, padx=5, pady=5)
+
 # Slider para ajustar o limiar manualmente
-threshold_slider = tk.Scale(root, from_=0, to=255, orient="horizontal", command=apply_manual_threshold, label="Threshold Binário")
+threshold_slider = tk.Scale(
+    controls_frame, 
+    from_=0, 
+    to=255, 
+    orient="horizontal", 
+    command=apply_manual_threshold, 
+    label="Threshold Binário"
+)
 threshold_slider.set(threshold_value)
-threshold_slider.pack(padx=5, pady=5)
-
-# Botões de Segmentação
-adaptive_thresh_button = tk.Button(root, text="Threshold Adaptativo", command=apply_adaptive_threshold)
-adaptive_thresh_button.pack(pady=5)
-
-auto_binary_thresh_button = tk.Button(root, text="Threshold Binário Automático", command=apply_auto_binary_threshold)
-auto_binary_thresh_button.pack(pady=5)
-
-# Botões de Operações Morfológicas
-erosion_button = tk.Button(root, text="Erosão", command=apply_erosion)
-erosion_button.pack(pady=5)
-
-dilation_button = tk.Button(root, text="Dilatação", command=apply_dilation)
-dilation_button.pack(pady=5)
-
-opening_button = tk.Button(root, text="Abertura", command=apply_opening)
-opening_button.pack(pady=5)
-
-closing_button = tk.Button(root, text="Fechamento", command=apply_closing)
-closing_button.pack(pady=5)
-
-# Botões para aplicar filtros adicionais
-gaussian_blur_button = tk.Button(root, text="Gaussian Blur", command=lambda: apply_filter("gaussian_blur"))
-gaussian_blur_button.pack(pady=5)
-
-average_blur_button = tk.Button(root, text="Average Blur", command=lambda: apply_filter("average_blur"))
-average_blur_button.pack(pady=5)
-
-laplacian_button = tk.Button(root, text="Laplacian", command=lambda: apply_filter("laplacian"))
-laplacian_button.pack(pady=5)
-
-sobel_button = tk.Button(root, text="Sobel", command=lambda: apply_filter("sobel"))
-sobel_button.pack(pady=5)
-
-# Criação das janelas para a imagem original, histograma e imagem processada
-create_original_window()
-create_histogram_window()
-create_processed_window()
+threshold_slider.grid(row=len(buttons) // 3 + 1, column=0, columnspan=3, pady=10)
 
 root.mainloop()
