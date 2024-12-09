@@ -9,12 +9,9 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # Variáveis globais
 img_cv = None
 threshold_value = 79
-gaussian_kernel_size = 15
-gaussian_sigma = 2.0
-sobel_sensitivity = 1
-morph_kernel_size = 5
-adaptive_block_size = 11
-adaptive_c = 2
+morphology_step = 0
+filter_step = 0
+filter_step_highpass = 0
 
 # Função para carregar a imagem
 def load_image():
@@ -57,52 +54,95 @@ def update_histogram():
     histogram_canvas.draw()
     histogram_canvas.get_tk_widget().pack()
 
-# Função para aplicar o filtro gaussiano
-def apply_gaussian_blur():
+# Função para aplicar filtros de passa-baixa
+def apply_lowpass_filter(value):
     if img_cv is None:
-        return
-    kernel = cv2.getGaussianKernel(gaussian_kernel_size, gaussian_sigma)
-    kernel = kernel @ kernel.T
-    filtered_img = cv2.filter2D(img_cv, -1, kernel)
-    display_image(filtered_img, original=False)
+        return  # Verifica se a imagem foi carregada antes de aplicar o filtro
+    kernel_size = int(value)
+    kernel_size = max(3, kernel_size if kernel_size % 2 == 1 else kernel_size + 1)  # Garantindo que kernel_size é ímpar
+    
+    if filter_step % 2 == 0:  # Gaussian Blur
+        sigma = 1.5  # Valor padrão de sigma
+        kernel = cv2.getGaussianKernel(kernel_size, sigma)
+        kernel = kernel @ kernel.T
+        processed_img = cv2.filter2D(img_cv, -1, kernel)
+    elif filter_step % 2 == 1:  # Average Blur
+        kernel = np.ones((kernel_size, kernel_size), np.float32) / (kernel_size ** 2)
+        processed_img = cv2.filter2D(img_cv, -1, kernel)
 
-# Função para aplicar o filtro Sobel
-def apply_sobel():
-    if img_cv is None:
-        return
-    sobelx = cv2.Sobel(img_cv, cv2.CV_64F, 1, 0, ksize=sobel_sensitivity)
-    sobely = cv2.Sobel(img_cv, cv2.CV_64F, 0, 1, ksize=sobel_sensitivity)
-    sobel_magnitude = cv2.magnitude(sobelx, sobely)
-    filtered_img = cv2.convertScaleAbs(sobel_magnitude)
-    display_image(filtered_img, original=False)
+    if processed_img is not None:
+        display_image(processed_img, original=False)
 
-# Funções para ajustar operações morfológicas
-def apply_morph_operation(operation):
+# Função para aplicar filtros de passa-alta
+def apply_highpass_filter(value):
     if img_cv is None:
         return
-    kernel = np.ones((morph_kernel_size, morph_kernel_size), np.uint8)
-    if operation == "erosion":
+    kernel_size = int(value)
+    kernel_size = max(3, kernel_size if kernel_size % 2 == 1 else kernel_size + 1)  # Garantindo kernel ímpar
+
+    if filter_step_highpass % 2 == 0:  # Sobel
+        sobelx = cv2.Sobel(img_cv, cv2.CV_64F, 1, 0, ksize=kernel_size)
+        sobely = cv2.Sobel(img_cv, cv2.CV_64F, 0, 1, ksize=kernel_size)
+        processed_img = cv2.magnitude(sobelx, sobely)
+        processed_img = cv2.convertScaleAbs(processed_img)
+    elif filter_step_highpass % 2 == 1:  # Laplacian
+        processed_img = cv2.Laplacian(img_cv, cv2.CV_64F, ksize=kernel_size)
+        processed_img = cv2.convertScaleAbs(processed_img)
+
+    if processed_img is not None:
+        display_image(processed_img, original=False)
+
+# Função para alternar o tipo de filtro de passa-alta
+def change_highpass_filter():
+    global filter_step_highpass
+    filter_step_highpass = (filter_step_highpass + 1) % 2
+    highpass_label.config(text=["Sobel", "Laplacian"][filter_step_highpass])
+
+# Função para alternar o tipo de filtro de passa-baixa
+def change_lowpass_filter():
+    global filter_step
+    filter_step = (filter_step + 1) % 2
+    filter_label.config(text=["Gaussian Blur", "Average Blur"][filter_step])
+
+# Função para aplicar o threshold manual
+def apply_manual_threshold(value):
+    global threshold_value
+    if img_cv is None:
+        return  # Verifica se a imagem foi carregada antes de aplicar o threshold
+    threshold_value = int(value)
+    _, binarized_img = cv2.threshold(img_cv, threshold_value, 255, cv2.THRESH_BINARY)
+    if binarized_img is not None:
+        display_image(binarized_img, original=False)
+        update_histogram()
+
+# Função para ajustar o slider de morfologia
+def apply_morphology(value):
+    if img_cv is None:
+        return
+    value = int(value)
+    kernel = np.ones((value, value), np.uint8)
+
+    if morphology_step % 4 == 0:  # Erosão
         processed_img = cv2.erode(img_cv, kernel, iterations=1)
-    elif operation == "dilation":
+    elif morphology_step % 4 == 1:  # Dilatação
         processed_img = cv2.dilate(img_cv, kernel, iterations=1)
-    elif operation == "opening":
+    elif morphology_step % 4 == 2:  # Abertura
         processed_img = cv2.morphologyEx(img_cv, cv2.MORPH_OPEN, kernel)
-    elif operation == "closing":
+    elif morphology_step % 4 == 3:  # Fechamento
         processed_img = cv2.morphologyEx(img_cv, cv2.MORPH_CLOSE, kernel)
+
     display_image(processed_img, original=False)
 
-# Função para aplicar threshold adaptativo
-def apply_adaptive_threshold():
-    if img_cv is None:
-        return
-    adaptive_img = cv2.adaptiveThreshold(img_cv, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                         cv2.THRESH_BINARY, adaptive_block_size, adaptive_c)
-    display_image(adaptive_img, original=False)
+# Função para mudar o tipo de morfologia ao pressionar um botão
+def change_morphology():
+    global morphology_step
+    morphology_step = (morphology_step + 1) % 4
+    morphology_label.config(text=["Erosão", "Dilatação", "Abertura", "Fechamento"][morphology_step])
 
 # Interface principal do Tkinter
 root = tk.Tk()
 root.title("HK PhotoEditor")
-root.geometry("1200x700")
+root.geometry("1200x600")
 
 # Frame para exibir imagens
 image_frame = tk.Frame(root, width=900, height=300, bg="white")
@@ -120,26 +160,81 @@ histogram_frame.pack(side=tk.LEFT, padx=10)
 processed_image_canvas = tk.Canvas(image_frame, width=300, height=300, bg="gray")
 processed_image_canvas.pack(side=tk.LEFT, padx=10)
 
-# Frame para controles
+# Frame para botões e sliders
 controls_frame = tk.Frame(root)
 controls_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=10)
 
-# Botão para carregar a imagem
-load_button = tk.Button(root, text="Load Image", command=load_image)
-load_button.pack(pady=5)
+# Botão para carregar a imagem (colocado no controls_frame)
+load_button = tk.Button(controls_frame, text="Load Image", command=load_image)
+load_button.grid(row=0, column=0, columnspan=5, pady=10)
 
-# Sliders para ajustar parâmetros
-tk.Scale(controls_frame, from_=3, to=31, resolution=2, orient="horizontal",
-         label="Kernel Gaussiano", command=lambda val: setattr(globals(), 'gaussian_kernel_size', int(val))).pack(pady=5)
-tk.Scale(controls_frame, from_=0.5, to=10, resolution=0.1, orient="horizontal",
-         label="Sigma Gaussiano", command=lambda val: setattr(globals(), 'gaussian_sigma', float(val))).pack(pady=5)
-tk.Scale(controls_frame, from_=1, to=5, orient="horizontal",
-         label="Sensibilidade Sobel", command=lambda val: setattr(globals(), 'sobel_sensitivity', int(val))).pack(pady=5)
-tk.Scale(controls_frame, from_=3, to=21, resolution=2, orient="horizontal",
-         label="Kernel Morfológico", command=lambda val: setattr(globals(), 'morph_kernel_size', int(val))).pack(pady=5)
-tk.Scale(controls_frame, from_=3, to=31, resolution=2, orient="horizontal",
-         label="Blocos Threshold Adaptativo", command=lambda val: setattr(globals(), 'adaptive_block_size', int(val))).pack(pady=5)
-tk.Scale(controls_frame, from_=-10, to=10, orient="horizontal",
-         label="C Threshold Adaptativo", command=lambda val: setattr(globals(), 'adaptive_c', int(val))).pack(pady=5)
+# Slider para ajustar o tamanho do kernel de filtros passa-alta
+highpass_slider = tk.Scale(
+    controls_frame,
+    from_=3,
+    to=21,
+    orient="horizontal",
+    command=apply_highpass_filter,
+    label="Kernel Passa-Alta"
+)
+highpass_slider.set(5)
+highpass_slider.grid(row=1, column=3, pady=5)
+
+# Slider para ajustar o limiar manualmente
+threshold_slider = tk.Scale(
+    controls_frame,
+    from_=0,
+    to=255,
+    orient="horizontal",
+    command=apply_manual_threshold,
+    label="Threshold Binário"
+)
+threshold_slider.set(threshold_value)
+threshold_slider.grid(row=1, column=0, pady=5)
+
+# Slider para ajustar o kernel da morfologia
+morphology_slider = tk.Scale(
+    controls_frame,
+    from_=1,
+    to=21,
+    orient="horizontal",
+    command=apply_morphology,
+    label="Kernel Morfologia"
+)
+morphology_slider.set(5)
+morphology_slider.grid(row=1, column=1, pady=5)
+
+# Botão e rótulo para mudar o tipo de morfologia
+morphology_label = tk.Label(controls_frame, text="Erosão")
+morphology_label.grid(row=2, column=1)
+
+morphology_button = tk.Button(controls_frame, text="Alterar Morfologia", command=change_morphology)
+morphology_button.grid(row=2, column=0)
+
+# Slider para ajustar o tamanho do kernel de filtros passa-baixa
+filter_slider = tk.Scale(
+    controls_frame,
+    from_=3,
+    to=21,
+    orient="horizontal",
+    command=apply_lowpass_filter,
+    label="Kernel Passa-Baixa"
+)
+filter_slider.set(5)
+filter_slider.grid(row=1, column=2, pady=5)
+
+# Botão e rótulo para mudar o tipo de filtro de passa-baixa
+filter_label = tk.Label(controls_frame, text="Gaussian Blur")
+filter_label.grid(row=2, column=2)
+
+filter_button = tk.Button(controls_frame, text="Alterar Filtro", command=change_lowpass_filter)
+filter_button.grid(row=2, column=3)
+
+# Botão e rótulo para mudar o tipo de filtro de passa-alta
+highpass_label = tk.Label(controls_frame, text="Sobel")
+highpass_label.grid(row=2, column=3)
+
+highpass_button = tk.Button(controls_frame, text="Alterar Filtro", command=change_highpass_filter)
+highpass_button.grid(row=2, column=4)
 
 root.mainloop()
