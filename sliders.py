@@ -8,7 +8,11 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 # Variáveis globais
 img_cv = None
+processed_img = None
 threshold_value = 79
+lowpass_kernel_size = 5
+highpass_kernel_size = 5
+morphology_kernel_size = 5
 morphology_step = 0
 filter_step = 0
 filter_step_highpass = 0
@@ -39,30 +43,39 @@ def display_image(img, original=False):
 
 # Função para atualizar o histograma com a linha de limiar
 def update_histogram():
-    global histogram_canvas
+    global histogram_canvas, processed_img, lowpass_kernel_size, highpass_kernel_size, morphology_kernel_size, threshold_value
     for widget in histogram_frame.winfo_children():
         widget.destroy()
 
-    fig, ax = plt.subplots(figsize=(4, 3))
-    ax.hist(img_cv.ravel(), bins=256, range=(0, 256), color='gray')
-    ax.axvline(threshold_value, color='red', linestyle='--')  # Linha de limiar
-    ax.set_title("Histogram")
-    ax.set_xlabel("Pixel Intensity")
-    ax.set_ylabel("Frequency")
+    # Use a imagem processada, se disponível, caso contrário, a imagem original
+    img_to_analyze = processed_img if processed_img is not None else img_cv
 
-    histogram_canvas = FigureCanvasTkAgg(fig, master=histogram_frame)
-    histogram_canvas.draw()
-    histogram_canvas.get_tk_widget().pack()
+    if img_to_analyze is not None:
+        fig, ax = plt.subplots(figsize=(4, 3))
+        ax.hist(img_to_analyze.ravel(), bins=256, range=(0, 256), color='gray')
+        ax.axvline(threshold_value, color='red', linestyle='--', label='Threshold')  # Linha do threshold
+        ax.axvline(lowpass_kernel_size * 10, color='blue', linestyle='--', label='Kernel Passa-Baixa')  # Linha do passa-baixa
+        ax.axvline(highpass_kernel_size * 10, color='green', linestyle='--', label='Kernel Passa-Alta')  # Linha do passa-alta
+        ax.axvline(morphology_kernel_size * 10, color='purple', linestyle='--', label='Kernel Morfologia')  # Linha da morfologia
+        ax.set_title("Histogram")
+        ax.set_xlabel("Pixel Intensity")
+        ax.set_ylabel("Frequency")
+        ax.legend()
+
+        histogram_canvas = FigureCanvasTkAgg(fig, master=histogram_frame)
+        histogram_canvas.draw()
+        histogram_canvas.get_tk_widget().pack()
 
 # Função para aplicar filtros de passa-baixa
 def apply_lowpass_filter(value):
+    global processed_img, lowpass_kernel_size
     if img_cv is None:
-        return  # Verifica se a imagem foi carregada antes de aplicar o filtro
-    kernel_size = int(value)
-    kernel_size = max(3, kernel_size if kernel_size % 2 == 1 else kernel_size + 1)  # Garantindo que kernel_size é ímpar
-    
+        return
+    lowpass_kernel_size = int(value)
+    kernel_size = max(3, lowpass_kernel_size if lowpass_kernel_size % 2 == 1 else lowpass_kernel_size + 1)
+
     if filter_step % 2 == 0:  # Gaussian Blur
-        sigma = 1.5  # Valor padrão de sigma
+        sigma = 1.5
         kernel = cv2.getGaussianKernel(kernel_size, sigma)
         kernel = kernel @ kernel.T
         processed_img = cv2.filter2D(img_cv, -1, kernel)
@@ -70,15 +83,16 @@ def apply_lowpass_filter(value):
         kernel = np.ones((kernel_size, kernel_size), np.float32) / (kernel_size ** 2)
         processed_img = cv2.filter2D(img_cv, -1, kernel)
 
-    if processed_img is not None:
-        display_image(processed_img, original=False)
+    display_image(processed_img, original=False)
+    update_histogram()
 
 # Função para aplicar filtros de passa-alta
 def apply_highpass_filter(value):
+    global processed_img, highpass_kernel_size
     if img_cv is None:
         return
-    kernel_size = int(value)
-    kernel_size = max(3, kernel_size if kernel_size % 2 == 1 else kernel_size + 1)  # Garantindo kernel ímpar
+    highpass_kernel_size = int(value)
+    kernel_size = max(3, highpass_kernel_size if highpass_kernel_size % 2 == 1 else highpass_kernel_size + 1)
 
     if filter_step_highpass % 2 == 0:  # Sobel
         sobelx = cv2.Sobel(img_cv, cv2.CV_64F, 1, 0, ksize=kernel_size)
@@ -89,8 +103,8 @@ def apply_highpass_filter(value):
         processed_img = cv2.Laplacian(img_cv, cv2.CV_64F, ksize=kernel_size)
         processed_img = cv2.convertScaleAbs(processed_img)
 
-    if processed_img is not None:
-        display_image(processed_img, original=False)
+    display_image(processed_img, original=False)
+    update_histogram()
 
 # Função para alternar o tipo de filtro de passa-alta
 def change_highpass_filter():
@@ -106,7 +120,7 @@ def change_lowpass_filter():
 
 # Função para aplicar o threshold manual
 def apply_manual_threshold(value):
-    global threshold_value
+    global threshold_value, processed_img
     if img_cv is None:
         return  # Verifica se a imagem foi carregada antes de aplicar o threshold
     threshold_value = int(value)
@@ -117,10 +131,11 @@ def apply_manual_threshold(value):
 
 # Função para ajustar o slider de morfologia
 def apply_morphology(value):
+    global processed_img, morphology_kernel_size
     if img_cv is None:
         return
-    value = int(value)
-    kernel = np.ones((value, value), np.uint8)
+    morphology_kernel_size = int(value)
+    kernel = np.ones((morphology_kernel_size, morphology_kernel_size), np.uint8)
 
     if morphology_step % 4 == 0:  # Erosão
         processed_img = cv2.erode(img_cv, kernel, iterations=1)
@@ -132,6 +147,7 @@ def apply_morphology(value):
         processed_img = cv2.morphologyEx(img_cv, cv2.MORPH_CLOSE, kernel)
 
     display_image(processed_img, original=False)
+    update_histogram()
 
 # Função para mudar o tipo de morfologia ao pressionar um botão
 def change_morphology():
